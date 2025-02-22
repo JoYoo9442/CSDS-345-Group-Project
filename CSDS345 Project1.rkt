@@ -35,17 +35,33 @@
 ;--------------statements-------------------------
 
 ;declaration statement
-(define declaration
+(define declare
   (lambda (statement state)
     (if (null? (cdr statement))
-      (bind (car statement) '() state)
-      (bind (car statement) (cadr statement) state))))
+      (bind (Mname statement) '() state)
+      (bind (Mname statement) (cadr statement) state))))
+(define Mname car)
+(define Mint cadr)
+
 
 ;assignment statement
+(define assign
+  (lambda (statement state)
+    (if (eq? '() (lookup (Mname statement) state))
+      (error 'declare "variable not declared")
+      (update (Mname statement) (cadr statement) state))))
+    
 
 ;return statement
+(define return
+  (lambda (statement state)
+    (lookup (Mname statement) state)))
 
 ;if statement
+(define if
+  (lambda (condition body else state)
+    (if (M_boolean condition)
+        
 
 ;while statement
 
@@ -90,6 +106,7 @@
       ((eq? '<= (operator expression)) (<= (M_boolean (firstoperand expression)) (M_boolean (secondoperand expression))))
       ((eq? '>= (operator expression)) (>= (M_boolean (firstoperand expression)) (M_boolean (secondoperand expression))))
       ((eq? '== (operator expression)) (eq? (M_boolean (firstoperand expression)) (M_boolean (secondoperand expression))))
+      ((eq? '!= (operator expression)) ((not eq? (M_boolean (firstoperand expression)) (M_boolean (secondoperand expression)))))
       (else (error 'bad-op "Invalid operator")))))
 
 
