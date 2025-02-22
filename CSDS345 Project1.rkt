@@ -10,6 +10,11 @@
 ;--------------statements-------------------------
 
 ;declaration statement
+(define declaration
+  (lambda (statement state)
+    (if (null? (cdr statement))
+      (bind (car statement) '() state)
+      (bind (car statement) (cadr statement) state))))
 
 ;assignment statement
 
@@ -34,6 +39,8 @@
 (define operator car)
 (define firstoperand cadr)
 (define secondoperand caddr)
+
+; NOTE: needs to be changed to take in a state for M_integer and M_boolean
 
 ;Minteger
 (define M_integer
