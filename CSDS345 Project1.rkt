@@ -5,29 +5,34 @@
 ; JUST FOR TESTING DELETE LATER
 (define state '((RETURN) ('())))
 
+; function to just roll through the state: get the cdr of both the lists in state
 (define next_in_state
   (lambda (state)
     (list (cdar state) (cdadr state))))
 
+; bind a name to a value and return the updated state
 (define bind
   (lambda (name value state)
     (list (append (car state) (list name)) (append (cadr state) (list value)))))
 
+; return a value assigned to a name in the state
 (define lookup
   (lambda (name state)
     (cond
-      ((null? state) (error 'bad-op "Invalid operator"))
+      ((null? state) (error 'bad-op "Invalid operator")) ;error messages not updated
       ((eq? name (caar state)) (caadr state))
       (else (lookup name (next_in_state state))))))
 
+; cps form of update
 (define update-cps
   (lambda (name value state return)
     (cond
-      ((null? state) (error 'bad-op "Invalid operator"))
+      ((null? state) (error 'bad-op "Invalid operator")) ;fix error messsages pls
       ((null? (car state)) (return '() '()))
       ((eq? name (caar state)) (return (car state) (cons value (cdadr state))))
       (else (update-cps name value (next_in_state state) (lambda (v1 v2) (return (cons (caar state) v1) (cons (caadr state) v2))))))))
 
+; make it so you just run update instead of update-cps
 (define update
   (lambda (name value state)
     (update-cps name value state (lambda (v1 v2) (list v1 v2)))))
