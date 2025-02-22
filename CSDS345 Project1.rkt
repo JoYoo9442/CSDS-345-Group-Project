@@ -1,16 +1,13 @@
 #lang racket
 (require "simpleParser.rkt")
 (require "lex.rkt")
-
-; JUST FOR TESTING DELETE LATER
-(define state '((RETURN) ('())))
-
 ;the main interpret function
 (define interpret
-  (lambda (filename)            ;;TODO: define initial state in here
-    (parse_statement_list
-     (parser filename)
-     (list '(RETURN) '(())))))
+  (lambda (filename)
+    (caadr                    ;result will be first value of second list
+     (parse_statement_list    ;begin parsing - returns final state
+      (parser filename)
+      (list '(RETURN) '(()))))))
 
 ;highest level: parse statement-list
 (define parse_statement_list

@@ -1,1 +1,0 @@
-("8.15" tarm64osx ("e0e83ce077a7725b80d5d28c796e973faa4fa1dd" . "d3a83e0c9a6339dc1fe37b99549003b505f72964") #"/Users/yoosoybeans/workspace/CWRU/CSDS-345/CSDS-345-Group-Project/lex.rkt" (collects #"drracket" #"private" #"drracket-errortrace-key.rkt") (collects #"racket" #"main.rkt") (collects #"racket" #"runtime-config.rkt"))
