@@ -2,10 +2,35 @@
 (require "simpleParser.rkt")
 (require "lex.rkt")
 
+;the main interpret function
 (define interpret
-  (lambda (filename)
-    (parser filename)))
+  (lambda (filename)            ;;TODO: define initial state in here
+    (parse_statement_list
+     (parser filename)
+     (list '(RETURN) '(())))))
 
+;highest level: parse statement-list
+(define parse_statement_list
+  (lambda (statement_list state)
+    (cond
+      ((null? (car statement_list)) state)   ;NOTE: is this the correct termination for empty statement-list? (I think so...)
+      ((list? (car statement_list)) (parse_statement_list
+                                     (cdr statement_list)
+                                     (parse_statement (car statement_list) state))) 
+      (else
+       (error "parse_statement_list: Invalid parse - Expected a list, but got" (car statement_list))))))  ;error on invalid parse should never be thrown
+
+;check which type of statement: parse statement
+(define parse_statement
+  (lambda (statement state)
+    (cond
+      ((eq? (car statement) 'var)    (declare statement state))
+      ((eq? (car statement) '=)      (assign statement state))
+      ((eq? (car statement) 'return) (return statement state))
+      ((eq? (car statement) 'if)     (if statement state))
+      ((eq? (car statement) 'while)  (while statement state))
+      (else
+       (error "parse_statement: Unknown statement" (statement))))))
 
 ;--------------statements-------------------------
 
