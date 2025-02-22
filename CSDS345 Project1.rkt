@@ -63,10 +63,17 @@
 ;if statement
 (define if
   (lambda (condition body else state)
-    (if (M_boolean condition)
+    (if (M_boolean condition state)
+      (parse_statement body state)
+      (parse_statement else state))))
         
 
 ;while statement
+(define while
+  (lambda (condition body state)
+    (if (M_boolean condition state)
+      (parse_statement body state)  ; NOTE: not sure if this is right for when the condition for the while loop is true
+      (state))))  ; NOTE: not sure if this is right for exitting the loop
 
 
 ;----------------bindings -------------
