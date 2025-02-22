@@ -42,8 +42,8 @@
   (lambda (statement state)
     (if (null? (cdr statement))
       (bind (Mname statement) '() state)
-      (bind (Mname statement) (cadr statement) state))))
-(define Mname car)
+      (bind (Mname statement) (caddr statement) state))))
+(define Mname cadr)
 (define Mint cadr)
 
 
