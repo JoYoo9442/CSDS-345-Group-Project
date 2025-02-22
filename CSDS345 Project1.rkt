@@ -31,6 +31,35 @@
 
 ;---------------values-------------
 
+(define operator car)
+(define firstoperand cadr)
+(define secondoperand caddr)
+
 ;Minteger
+(define M_integer
+  (lambda (expression)
+    (cond
+      ((number? expression) expression)
+      ((eq? '+ (operator expression)) (+ (M_integer (firstoperand expression)) (M_integer (secondoperand expression))))
+      ((eq? '- (operator expression)) (- (M_integer (firstoperand expression)) (M_integer (secondoperand expression))))
+      ((eq? '* (operator expression)) (* (M_integer (firstoperand expression)) (M_integer (secondoperand expression))))
+      ((eq? '/ (operator expression)) (quotient (M_integer (firstoperand expression)) (M_integer (secondoperand expression))))
+      ((eq? '% (operator expression)) (remainder (M_integer (firstoperand expression)) (M_integer (secondoperand expression))))
+      (else (error 'bad-op "Invalid operator")))))
+
 
 ;Mboolean
+(define M_boolean
+  (lambda (expression)
+    (cond
+      ((number? expression) expression)
+      ((eq? '> (operator expression)) (> (M_boolean (firstoperand expression)) (M_boolean (secondoperand expression))))
+      ((eq? '< (operator expression)) (< (M_boolean (firstoperand expression)) (M_boolean (secondoperand expression))))
+      ((eq? '<= (operator expression)) (<= (M_boolean (firstoperand expression)) (M_boolean (secondoperand expression))))
+      ((eq? '>= (operator expression)) (>= (M_boolean (firstoperand expression)) (M_boolean (secondoperand expression))))
+      ((eq? '== (operator expression)) (eq? (M_boolean (firstoperand expression)) (M_boolean (secondoperand expression))))
+      (else (error 'bad-op "Invalid operator")))))
+
+
+
+
