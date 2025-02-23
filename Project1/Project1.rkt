@@ -30,9 +30,9 @@
       ((number? statement) statement)
       ((boolean? statement) (convert_boolean statement))                  ; Convert boolean to our representation
       ((is_boolean? statement) statement)                                 ; Return the boolean if it is a boolean
-      ((does_exist? statement state) (if (null? (lookup statement state)) ; Check if the variable has been assigned a value
-                                (error 'parse_statement (string-append "Variable " (format "~a" statement) " has not been assigned a value"))
-                                (lookup statement state)))
+      ((not (pair? statement)) (if (null? (lookup statement state)) ; Check if the variable has been assigned a value
+                                       (error 'parse_statement (string-append "Variable " (format "~a" statement) " has not been assigned a value"))
+                                       (lookup statement state)))
       ((null? statement) state)
       ((is_reserved_word? statement) (eval_reserved_word statement state))
       ((is_math_expr? statement) (eval_math_expr statement state))
