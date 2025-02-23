@@ -75,14 +75,14 @@
 ; conditionals helpers
 (define condition cadr)
 (define body caddr)
-(define else cadddr)
+(define else_body cadddr)
 
 ;if statement
 (define interpret_if
   (lambda (statement state)
     (if (M_boolean (condition statement) state)
       (parse_statement (body statement) state)
-      (parse_statement (else statement) state))))
+      (parse_statement (else_body statement) state))))
         
 
 ;while statement
@@ -165,7 +165,6 @@
 (define M_boolean
   (lambda (expression state)
     (cond
-      ((number? expression) expression)
       ((eq? '> (operator expression)) (> (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
       ((eq? '< (operator expression)) (< (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
       ((eq? '<= (operator expression)) (<= (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
@@ -174,4 +173,4 @@
       ((eq? '!= (operator expression)) ((not eq? (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state))))
       (else (error 'bad-op (format "Invalid operator: ~a" expression))))))
 
-(interpret "test1.txt")
+(interpret "test.txt")
