@@ -51,17 +51,16 @@
 
 (define value_declare
   (lambda (statement state)
-    (bind (Mname statement) (Mvalue statement) state)))
+    (bind (Mname statement) (M_integer (Mvalue statement) state) state)))
 
 (define Mname cadr)
 (define Mvalue caddr)
-
 
 ;assignment statement
 (define assign
   (lambda (statement state)
     (if (does_exist? (Mname statement) state)
-      (update (Mname statement) (cadr statement) state)
+      (update (Mname statement) (M_integer (Mvalue statement) state) state)
       (error 'assign "variable not declared" (statement)))))
     
 
@@ -146,13 +145,6 @@
 (define firstoperand cadr)
 (define secondoperand caddr)
 
-;helper to evaluate operand in case of variable
-(define evaluate_operand
-  (lambda (operand state)
-    (if (number? operand)
-        operand
-        (lookup operand state))))
-
 ; NOTE: needs to be changed to take in a state for M_integer and M_boolean
 
 ;Minteger
@@ -160,11 +152,12 @@
   (lambda (expression state)
     (cond
       ((number? expression) expression)
-      ((eq? '+ (operator expression)) (+ (M_integer (evaluate_operand (firstoperand expression) state) state) (M_integer (evaluate_operand (secondoperand expression) state) state)))
-      ((eq? '- (operator expression)) (- (M_integer (evaluate_operand (firstoperand expression) state) state) (M_integer (evaluate_operand (secondoperand expression) state) state)))
-      ((eq? '* (operator expression)) (* (M_integer (evaluate_operand (firstoperand expression) state) state) (M_integer (evaluate_operand (secondoperand expression) state) state)))
-      ((eq? '/ (operator expression)) (quotient (M_integer (evaluate_operand (firstoperand expression) state) state) (M_integer (evaluate_operand (secondoperand expression) state) state)))
-      ((eq? '% (operator expression)) (remainder (M_integer (evaluate_operand (firstoperand expression) state) state) (M_integer (evaluate_operand (secondoperand expression) state) state)))
+      ((not (pair? expression)) (lookup expression state))
+      ((eq? '+ (operator expression)) (+ (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
+      ((eq? '- (operator expression)) (- (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
+      ((eq? '* (operator expression)) (* (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
+      ((eq? '/ (operator expression)) (quotient (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
+      ((eq? '% (operator expression)) (remainder (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
       (else (error 'bad-op (string-append "Invalid operator: "(format "~a" expression)))))))
 
 
@@ -180,3 +173,5 @@
       ((eq? '== (operator expression)) (eq? (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
       ((eq? '!= (operator expression)) ((not eq? (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state))))
       (else (error 'bad-op (format "Invalid operator: ~a" expression))))))
+
+(interpret "test1.txt")
