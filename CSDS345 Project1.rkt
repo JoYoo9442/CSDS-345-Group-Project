@@ -89,7 +89,7 @@
 (define interpret_while
   (lambda (statement state)
     (if (M_boolean (condition statement) state)
-      (parse_statement (condition statement) state)  ; NOTE: not sure if this is right for when the condition for the while loop is true
+      (parse_statement (body statement) state)  ; NOTE: not sure if this is right for when the condition for the while loop is true
       (state))))  ; NOTE: not sure if this is right for exitting the loop
 
 
@@ -170,7 +170,8 @@
       ((eq? '<= (operator expression)) (<= (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
       ((eq? '>= (operator expression)) (>= (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
       ((eq? '== (operator expression)) (eq? (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
-      ((eq? '!= (operator expression)) ((not eq? (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state))))
+      ((eq? '!= (operator expression)) (not (eq? (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state))))
       (else (error 'bad-op (format "Invalid operator: ~a" expression))))))
 
+(parser "test.txt")
 (interpret "test.txt")
