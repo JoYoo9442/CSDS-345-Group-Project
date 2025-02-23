@@ -70,7 +70,7 @@
   (lambda (statement state)
     (update
      'RETURN
-     (M_integer statement state)
+     (M_integer (cadr statement) state)
      state)))
 
 ;if statement
@@ -134,6 +134,13 @@
 (define firstoperand cadr)
 (define secondoperand caddr)
 
+;helper to evaluate operand in case of variable
+(define evaluate_operand
+  (lambda (operand state)
+    (if (number? operand)
+        operand
+        (lookup operand state))))
+
 ; NOTE: needs to be changed to take in a state for M_integer and M_boolean
 
 ;Minteger
@@ -141,15 +148,12 @@
   (lambda (expression state)
     (cond
       ((number? expression) expression)
-      ((eq? '+ (operator expression)) (+ (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
-      ((eq? '- (operator expression)) (- (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
-      ((eq? '* (operator expression)) (* (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
-      ((eq? '/ (operator expression)) (quotient (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
-      ((eq? '% (operator expression)) (remainder (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
-      
-      (else (error 'bad-op "Invalid operator")))))
-
-; make helper method that will be like evaluate operand
+      ((eq? '+ (operator expression)) (+ (M_integer (evaluate_operand (firstoperand expression) state) state) (evaluate_operand (M_integer (secondoperand expression) state) state)))
+      ((eq? '- (operator expression)) (- (M_integer (evaluate_operand (firstoperand expression) state) state) (evaluate_operand (M_integer (secondoperand expression) state) state)))
+      ((eq? '* (operator expression)) (* (M_integer (evaluate_operand (firstoperand expression) state) state) (evaluate_operand (M_integer (secondoperand expression) state) state)))
+      ((eq? '/ (operator expression)) (quotient (M_integer (evaluate_operand (firstoperand expression) state) state) (evaluate_operand (M_integer (secondoperand expression) state) state)))
+      ((eq? '% (operator expression)) (remainder (M_integer (evaluate_operand (firstoperand expression) state) state) (evaluate_operand (M_integer (secondoperand expression) state) state)))
+      (else (error 'bad-op (string-append "Invalid operator: "(format "~a" expression)))))))
 
 
 ;Mboolean
@@ -157,10 +161,10 @@
   (lambda (expression state)
     (cond
       ((number? expression) expression)
-      ((eq? '> (operator expression)) (> (M_boolean (firstoperand expression) state) (M_boolean (secondoperand expression) state)))
-      ((eq? '< (operator expression)) (< (M_boolean (firstoperand expression) state) (M_boolean (secondoperand expression) state)))
-      ((eq? '<= (operator expression)) (<= (M_boolean (firstoperand expression) state) (M_boolean (secondoperand expression) state)))
-      ((eq? '>= (operator expression)) (>= (M_boolean (firstoperand expression) state) (M_boolean (secondoperand expression) state)))
-      ((eq? '== (operator expression)) (eq? (M_boolean (firstoperand expression) state) (M_boolean (secondoperand expression) state)))
-      ((eq? '!= (operator expression)) ((not eq? (M_boolean (firstoperand expression) state) (M_boolean (secondoperand expression) state))))
-      (else (error 'bad-op "Invalid operator")))))
+      ((eq? '> (operator expression)) (> (M_boolean (evaluate_operand (firstoperand expression) state) state) (M_boolean (evaluate_operand (secondoperand expression) state) state)))
+      ((eq? '< (operator expression)) (< (M_boolean (evaluate_operand (firstoperand expression) state) state) (M_boolean (evaluate_operand (secondoperand expression) state) state)))
+      ((eq? '<= (operator expression)) (<= (M_boolean (evaluate_operand (firstoperand expression) state) state) (M_boolean (evaluate_operand (secondoperand expression) state) state)))
+      ((eq? '>= (operator expression)) (>= (M_boolean (evaluate_operand (firstoperand expression) state) state) (M_boolean (evaluate_operand (secondoperand expression) state) state)))
+      ((eq? '== (operator expression)) (eq? (M_boolean (evaluate_operand (firstoperand expression) state) state) (M_boolean (evaluate_operand (secondoperand expression) state) state)))
+      ((eq? '!= (operator expression)) ((not eq? (M_boolean (evaluate_operand (firstoperand expression) state) state) (M_boolean (evaluate_operand (secondoperand expression) state) state))))
+      (else (error 'bad-op (string-append "Invalid operator: "(format "~a" expression)))))))
