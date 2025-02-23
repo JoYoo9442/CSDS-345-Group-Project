@@ -113,7 +113,7 @@
 (define lookup
   (lambda (name state)
     (cond
-      ((null? (car state)) (error 'invalid-var "Invalid variable name")) ;error messages not updated
+      ((null? (car state)) (error 'invalid-var (format "Invalid variable name: ~a" name))) ;error messages not updated
       ((eq? name (caar state)) (caadr state))
       (else (lookup name (next_in_state state))))))
 
@@ -173,10 +173,10 @@
   (lambda (expression state)
     (cond
       ((number? expression) expression)
-      ((eq? '> (operator expression)) (> (M_boolean (firstoperand expression) state) (M_boolean (secondoperand expression) state)))
-      ((eq? '< (operator expression)) (< (M_boolean (firstoperand expression) state) (M_boolean (secondoperand expression) state)))
-      ((eq? '<= (operator expression)) (<= (M_boolean (firstoperand expression) state) (M_boolean (secondoperand expression) state)))
-      ((eq? '>= (operator expression)) (>= (M_boolean (firstoperand expression) state) (M_boolean (secondoperand expression) state)))
-      ((eq? '== (operator expression)) (eq? (M_boolean (firstoperand expression) state) (M_boolean (secondoperand expression) state)))
-      ((eq? '!= (operator expression)) ((not eq? (M_boolean (firstoperand expression) state) (M_boolean (secondoperand expression) state))))
+      ((eq? '> (operator expression)) (> (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
+      ((eq? '< (operator expression)) (< (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
+      ((eq? '<= (operator expression)) (<= (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
+      ((eq? '>= (operator expression)) (>= (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
+      ((eq? '== (operator expression)) (eq? (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
+      ((eq? '!= (operator expression)) ((not eq? (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state))))
       (else (error 'bad-op (format "Invalid operator: ~a" expression))))))
