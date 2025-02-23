@@ -3,9 +3,6 @@
 (require "lex.rkt")
 (provide interpret)
 
-; JUST for testing DELETE LATER
-(define state '((RETURN) (())))
-
 ;the main interpret function
 (define interpret
   (lambda (filename)
@@ -20,8 +17,8 @@
     (cond
       ((null? statement_list) state)   ;NOTE: is this the correct termination for empty statement-list? (I think so...)
       ((list? (car statement_list)) (parse_statement_list
-                                     (cdr statement_list)
-                                     (parse_statement (car statement_list) state))) 
+                                      (cdr statement_list)
+                                      (parse_statement (car statement_list) state))) 
       (else
        (error "parse_statement_list: Invalid parse - Expected a list, but got" (car statement_list))))))  ;error on invalid parse should never be thrown
 
@@ -29,6 +26,7 @@
 (define parse_statement
   (lambda (statement state)
     (cond
+      ((null? statement) state)
       ((eq? (car statement) 'var)    (declare statement state))
       ((eq? (car statement) '=)      (assign statement state))
       ((eq? (car statement) 'return) (return statement state))
@@ -81,10 +79,22 @@
 ;if statement
 (define interpret_if
   (lambda (statement state)
+    (if (null? (cdddr statement))
+      (if_without_else statement state)
+      (if_with_else statement state))))
+
+; Helpers to separate an if with an else and a if without an else
+(define if_with_else
+  (lambda (statement state)
     (if (M_boolean (condition statement) state)
       (parse_statement (body statement) state)
       (parse_statement (else_body statement) state))))
-        
+
+(define if_without_else
+  (lambda (statement state)
+    (if (M_boolean (condition statement) state)
+      (parse_statement (body statement) state)
+      state)))
 
 ;while statement
 (define interpret_while
@@ -155,7 +165,9 @@
       ((number? expression) expression)
       ((not (pair? expression)) (lookup expression state))
       ((eq? '+ (operator expression)) (+ (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
-      ((eq? '- (operator expression)) (- (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
+      ((eq? '- (operator expression)) (if (null? (cddr expression)) ; if its unary sign or subtraction
+                                        (- 0 (M_integer (firstoperand expression) state))
+                                        (- (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state))))
       ((eq? '* (operator expression)) (* (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
       ((eq? '/ (operator expression)) (quotient (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
       ((eq? '% (operator expression)) (remainder (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
