@@ -160,11 +160,11 @@
   (lambda (expression state)
     (cond
       ((number? expression) expression)
-      ((eq? '+ (operator expression)) (+ (M_integer (evaluate_operand (firstoperand expression) state) state) (evaluate_operand (M_integer (secondoperand expression) state) state)))
-      ((eq? '- (operator expression)) (- (M_integer (evaluate_operand (firstoperand expression) state) state) (evaluate_operand (M_integer (secondoperand expression) state) state)))
-      ((eq? '* (operator expression)) (* (M_integer (evaluate_operand (firstoperand expression) state) state) (evaluate_operand (M_integer (secondoperand expression) state) state)))
-      ((eq? '/ (operator expression)) (quotient (M_integer (evaluate_operand (firstoperand expression) state) state) (evaluate_operand (M_integer (secondoperand expression) state) state)))
-      ((eq? '% (operator expression)) (remainder (M_integer (evaluate_operand (firstoperand expression) state) state) (evaluate_operand (M_integer (secondoperand expression) state) state)))
+      ((eq? '+ (operator expression)) (+ (M_integer (evaluate_operand (firstoperand expression) state) state) (M_integer (evaluate_operand (secondoperand expression) state) state)))
+      ((eq? '- (operator expression)) (- (M_integer (evaluate_operand (firstoperand expression) state) state) (M_integer (evaluate_operand (secondoperand expression) state) state)))
+      ((eq? '* (operator expression)) (* (M_integer (evaluate_operand (firstoperand expression) state) state) (M_integer (evaluate_operand (secondoperand expression) state) state)))
+      ((eq? '/ (operator expression)) (quotient (M_integer (evaluate_operand (firstoperand expression) state) state) (M_integer (evaluate_operand (secondoperand expression) state) state)))
+      ((eq? '% (operator expression)) (remainder (M_integer (evaluate_operand (firstoperand expression) state) state) (M_integer (evaluate_operand (secondoperand expression) state) state)))
       (else (error 'bad-op (string-append "Invalid operator: "(format "~a" expression)))))))
 
 
