@@ -68,7 +68,10 @@
 ;return statement
 (define return
   (lambda (statement state)
-    (lookup (Mname statement) state)))
+    (update
+     'RETURN
+     (M_integer statement state)
+     state)))
 
 ;if statement
 (define interpret_if
@@ -135,26 +138,29 @@
 
 ;Minteger
 (define M_integer
-  (lambda (expression)
+  (lambda (expression state)
     (cond
       ((number? expression) expression)
-      ((eq? '+ (operator expression)) (+ (M_integer (firstoperand expression)) (M_integer (secondoperand expression))))
-      ((eq? '- (operator expression)) (- (M_integer (firstoperand expression)) (M_integer (secondoperand expression))))
-      ((eq? '* (operator expression)) (* (M_integer (firstoperand expression)) (M_integer (secondoperand expression))))
-      ((eq? '/ (operator expression)) (quotient (M_integer (firstoperand expression)) (M_integer (secondoperand expression))))
-      ((eq? '% (operator expression)) (remainder (M_integer (firstoperand expression)) (M_integer (secondoperand expression))))
+      ((eq? '+ (operator expression)) (+ (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
+      ((eq? '- (operator expression)) (- (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
+      ((eq? '* (operator expression)) (* (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
+      ((eq? '/ (operator expression)) (quotient (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
+      ((eq? '% (operator expression)) (remainder (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
+      
       (else (error 'bad-op "Invalid operator")))))
+
+; make helper method that will be like evaluate operand
 
 
 ;Mboolean
 (define M_boolean
-  (lambda (expression)
+  (lambda (expression state)
     (cond
       ((number? expression) expression)
-      ((eq? '> (operator expression)) (> (M_boolean (firstoperand expression)) (M_boolean (secondoperand expression))))
-      ((eq? '< (operator expression)) (< (M_boolean (firstoperand expression)) (M_boolean (secondoperand expression))))
-      ((eq? '<= (operator expression)) (<= (M_boolean (firstoperand expression)) (M_boolean (secondoperand expression))))
-      ((eq? '>= (operator expression)) (>= (M_boolean (firstoperand expression)) (M_boolean (secondoperand expression))))
-      ((eq? '== (operator expression)) (eq? (M_boolean (firstoperand expression)) (M_boolean (secondoperand expression))))
-      ((eq? '!= (operator expression)) ((not eq? (M_boolean (firstoperand expression)) (M_boolean (secondoperand expression)))))
+      ((eq? '> (operator expression)) (> (M_boolean (firstoperand expression) state) (M_boolean (secondoperand expression) state)))
+      ((eq? '< (operator expression)) (< (M_boolean (firstoperand expression) state) (M_boolean (secondoperand expression) state)))
+      ((eq? '<= (operator expression)) (<= (M_boolean (firstoperand expression) state) (M_boolean (secondoperand expression) state)))
+      ((eq? '>= (operator expression)) (>= (M_boolean (firstoperand expression) state) (M_boolean (secondoperand expression) state)))
+      ((eq? '== (operator expression)) (eq? (M_boolean (firstoperand expression) state) (M_boolean (secondoperand expression) state)))
+      ((eq? '!= (operator expression)) ((not eq? (M_boolean (firstoperand expression) state) (M_boolean (secondoperand expression) state))))
       (else (error 'bad-op "Invalid operator")))))
