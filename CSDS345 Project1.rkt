@@ -40,6 +40,7 @@
     (if (null? (cdr statement))
       (bind (Mname statement) '() state)
       (bind (Mname statement) (caddr statement) state))))
+
 (define Mname cadr)
 (define Mint cadr)
 
@@ -55,7 +56,10 @@
 ;return statement
 (define return
   (lambda (statement state)
-    (lookup (Mname statement) state)))
+    (update
+     'RETURN
+     (M_integer statement state)
+     state)))
 
 ;if statement
 (define if
