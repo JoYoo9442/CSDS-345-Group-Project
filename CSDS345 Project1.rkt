@@ -17,7 +17,7 @@
 (define parse_statement_list
   (lambda (statement_list state)
     (cond
-      ((null? (car statement_list)) state)   ;NOTE: is this the correct termination for empty statement-list? (I think so...)
+      ((null? statement_list) state)   ;NOTE: is this the correct termination for empty statement-list? (I think so...)
       ((list? (car statement_list)) (parse_statement_list
                                      (cdr statement_list)
                                      (parse_statement (car statement_list) state))) 
