@@ -17,7 +17,7 @@
 (define parse_statement_list
   (lambda (statement_list state)
     (cond
-      ((null? (car statement_list)) state)   ;NOTE: is this the correct termination for empty statement-list? (I think so...)
+      ((null? statement_list) state)   ;NOTE: is this the correct termination for empty statement-list? (I think so...)
       ((list? (car statement_list)) (parse_statement_list
                                      (cdr statement_list)
                                      (parse_statement (car statement_list) state))) 
@@ -70,7 +70,7 @@
   (lambda (statement state)
     (update
      'RETURN
-     (M_integer statement state)
+     (M_integer (cadr statement) state)
      state)))
 
 ; conditionals helpers
@@ -146,6 +146,13 @@
 (define firstoperand cadr)
 (define secondoperand caddr)
 
+;helper to evaluate operand in case of variable
+(define evaluate_operand
+  (lambda (operand state)
+    (if (number? operand)
+        operand
+        (lookup operand state))))
+
 ; NOTE: needs to be changed to take in a state for M_integer and M_boolean
 
 ;Minteger
@@ -153,15 +160,12 @@
   (lambda (expression state)
     (cond
       ((number? expression) expression)
-      ((eq? '+ (operator expression)) (+ (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
-      ((eq? '- (operator expression)) (- (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
-      ((eq? '* (operator expression)) (* (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
-      ((eq? '/ (operator expression)) (quotient (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
-      ((eq? '% (operator expression)) (remainder (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
-      
-      (else (error 'bad-op "Invalid operator")))))
-
-; make helper method that will be like evaluate operand
+      ((eq? '+ (operator expression)) (+ (M_integer (evaluate_operand (firstoperand expression) state) state) (evaluate_operand (M_integer (secondoperand expression) state) state)))
+      ((eq? '- (operator expression)) (- (M_integer (evaluate_operand (firstoperand expression) state) state) (evaluate_operand (M_integer (secondoperand expression) state) state)))
+      ((eq? '* (operator expression)) (* (M_integer (evaluate_operand (firstoperand expression) state) state) (evaluate_operand (M_integer (secondoperand expression) state) state)))
+      ((eq? '/ (operator expression)) (quotient (M_integer (evaluate_operand (firstoperand expression) state) state) (evaluate_operand (M_integer (secondoperand expression) state) state)))
+      ((eq? '% (operator expression)) (remainder (M_integer (evaluate_operand (firstoperand expression) state) state) (evaluate_operand (M_integer (secondoperand expression) state) state)))
+      (else (error 'bad-op (string-append "Invalid operator: "(format "~a" expression)))))))
 
 
 ;Mboolean
