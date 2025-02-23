@@ -112,37 +112,41 @@
   (lambda (state)
     (list (cdar state) (cdadr state))))
 
+; return a boolean on whether a variable name exists in the state
+(define does_exist?
+  (lambda (name state)
+    (cond
+      ((null? (car state)) #f)
+      ((eq? name (caar state)) #t)
+      (else (does_exist? name (next_in_state state))))))
+
 ;create binding
 ; bind a name to a value and return the updated state
 (define bind
   (lambda (name value state)
-    (list (append (car state) (list name)) (append (cadr state) (list value)))))
+    (if (does_exist? name state)
+        (error 'bind (format "Variable ~a has already been declared" name))
+        (list (append (car state) (list name)) (append (cadr state) (list value))))))
 
 ;lookup binding
 ; return a value assigned to a name in the state
 (define lookup
   (lambda (name state)
     (cond
-      ((null? (car state)) (error 'invalid-var (format "Invalid variable name: ~a" name))) ;error messages not updated
+      ((not (does_exist? name state)) (error 'lookup (format "Variable ~a has not been declared" name))) ;error messages not updated
       ((eq? name (caar state)) (caadr state))
       (else (lookup name (next_in_state state))))))
-
-; return a boolean on whether a variable name exists in the state
-(define does_exist?
-  (lambda (name state)
-    (if (null? (car state))
-        #f
-        #t)))
 
 ;update binding
 ; cps form of update
 (define update-cps
   (lambda (name value state return)
-    (cond
-      ((null? state) (error 'bad-op "Invalid operator")) ;fix error messsages pls
-      ((null? (car state)) (return '() '()))
-      ((eq? name (caar state)) (return (car state) (cons value (cdadr state))))
-      (else (update-cps name value (next_in_state state) (lambda (v1 v2) (return (cons (caar state) v1) (cons (caadr state) v2))))))))
+    (if (not (does_exist? name state))
+        (error 'update-cps (format "Variable ~a has not been declared" name))
+        (cond
+          ((null? (car state)) (return '() '()))
+          ((eq? name (caar state)) (return (car state) (cons value (cdadr state))))
+          (else (update-cps name value (next_in_state state) (lambda (v1 v2) (return (cons (caar state) v1) (cons (caadr state) v2)))))))))
 
 ; make it so you just run update instead of update-cps
 (define update
@@ -163,7 +167,9 @@
   (lambda (expression state)
     (cond
       ((number? expression) expression)
-      ((not (pair? expression)) (lookup expression state))
+      ((not (pair? expression)) (if (null? (lookup expression state)) ; Check if the variable has been assigned a value
+                                (error 'M_integer (string-append "Variable " (format "~a" expression) " has not been assigned a value"))
+                                (lookup expression state)))
       ((eq? '+ (operator expression)) (+ (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
       ((eq? '- (operator expression)) (if (null? (cddr expression)) ; if its unary sign or subtraction
                                         (- 0 (M_integer (firstoperand expression) state))
@@ -171,7 +177,7 @@
       ((eq? '* (operator expression)) (* (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
       ((eq? '/ (operator expression)) (quotient (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
       ((eq? '% (operator expression)) (remainder (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
-      (else (error 'bad-op (string-append "Invalid operator: "(format "~a" expression)))))))
+      (else (error 'M_integer (string-append "Invalid operator: " (operator expression)))))))
 
 
 ;Mboolean
@@ -184,4 +190,4 @@
       ((eq? '>= (operator expression)) (>= (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
       ((eq? '== (operator expression)) (eq? (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
       ((eq? '!= (operator expression)) (not (eq? (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state))))
-      (else (error 'bad-op (format "Invalid operator: ~a" expression))))))
+      (else (error 'M_boolean (format "Invalid operator: ~a" expression))))))
