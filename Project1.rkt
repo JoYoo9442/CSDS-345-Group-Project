@@ -1,6 +1,7 @@
 #lang racket
 (require "simpleParser.rkt")
 (require "lex.rkt")
+(provide interpret)
 
 ; JUST for testing DELETE LATER
 (define state '((RETURN) (())))
@@ -172,6 +173,3 @@
       ((eq? '== (operator expression)) (eq? (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
       ((eq? '!= (operator expression)) (not (eq? (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state))))
       (else (error 'bad-op (format "Invalid operator: ~a" expression))))))
-
-(parser "test.txt")
-(interpret "test.txt")
