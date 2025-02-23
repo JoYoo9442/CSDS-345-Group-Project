@@ -23,43 +23,121 @@
        (error "parse_statement_list: Invalid parse - Expected a list, but got" (car statement_list))))))  ;error on invalid parse should never be thrown
 
 ;check which type of statement: parse statement
+; new parse_statement function
 (define parse_statement
   (lambda (statement state)
     (cond
+      ((number? statement) statement)
+      ((boolean? statement) (convert_boolean statement))                  ; Convert boolean to our representation
+      ((is_boolean? statement) statement)                                 ; Return the boolean if it is a boolean
+      ((does_exist? statement state) (if (null? (lookup statement state)) ; Check if the variable has been assigned a value
+                                (error 'parse_statement (string-append "Variable " (format "~a" statement) " has not been assigned a value"))
+                                (lookup statement state)))
       ((null? statement) state)
-      ((eq? (car statement) 'var)    (declare statement state))
-      ((eq? (car statement) '=)      (assign statement state))
-      ((eq? (car statement) 'return) (return statement state))
-      ((eq? (car statement) 'if)     (interpret_if statement state))
-      ((eq? (car statement) 'while)  (interpret_while statement state))
-      (else
-       (error "parse_statement: Unknown statement" (statement))))))
+      ((is_reserved_word? statement) (eval_reserved_word statement state))
+      ((is_math_expr? statement) (eval_math_expr statement state))
+      ((is_boolean_expr? statement) (eval_boolean_expr statement state))
+      (else (error 'parse_statement (format "Unknown statement: ~a" statement))))))
+
+; parse_statement helper functions
+
+; Function to identify the type of statement
+(define identifier car)
+
+; Function to parse reserved words
+(define eval_reserved_word
+  (lambda (statement state)
+    (cond
+      ((eq? (identifier statement) 'var) (declare statement state))
+      ((eq? (identifier statement) '=) (assign statement state))
+      ((eq? (identifier statement) 'return) (return statement state))
+      ((eq? (identifier statement) 'if) (interpret_if statement state))
+      ((eq? (identifier statement) 'while) (interpret_while statement state))
+      (else (error 'eval_reserved_word (format "How in the world did this error happen??? Statement: ~a" statement))))))
+
+; Function to check if the statement is a reserved word
+(define is_reserved_word?
+  (lambda (statement)
+    (or
+      (eq? (identifier statement) 'var)
+      (eq? (identifier statement) 'return)
+      (eq? (identifier statement) '=)
+      (eq? (identifier statement) 'if)
+      (eq? (identifier statement) 'while))))
+
+; function to check if the statement is a math expression
+(define is_math_expr?
+  (lambda (statement)
+    (or
+      (eq? (identifier statement) '+)
+      (eq? (identifier statement) '-)
+      (eq? (identifier statement) '*)
+      (eq? (identifier statement) '/)
+      (eq? (identifier statement) '%))))
+
+; Function to check if the statement is a comparison
+(define is_comparison?
+(lambda (statement)
+    (or
+      (eq? (identifier statement) '>)
+      (eq? (identifier statement) '<)
+      (eq? (identifier statement) '<=)
+      (eq? (identifier statement) '>=)
+      (eq? (identifier statement) '==)
+      (eq? (identifier statement) '!=))))
+
+; Function to check if the statement is a boolean
+(define is_boolean?
+  (lambda (statement)
+    (or
+      (eq? statement 'true)
+      (eq? statement 'false))))
+
+; Function to check if the statement is a boolean expression
+(define is_boolean_expr?
+  (lambda (statement)
+    (or
+      (is_comparison? statement)
+      (eq? (identifier statement) '&&)
+      (eq? (identifier statement) '||)
+      (eq? (identifier statement) '!))))
+
+(define convert_boolean
+  (lambda (statement)
+    (if statement
+      'true
+      'false)))
 
 ;--------------statements-------------------------
 
 ;declaration statement
 (define declare
   (lambda (statement state)
-    (if (null? (cddr statement))
+    (if (null? (cddr statement)) ; if there is no value assigned to the variable
         (empty_declare statement state)
         (value_declare statement state))))
 
+; Helper functions for declare
+
+; key and value of the statement
+(define state_key cadr)
+(define state_value caddr)
+
+; empty declaration
 (define empty_declare
   (lambda (statement state)
-    (bind (Mname statement) '() state)))
+    (bind (state_key statement) '() state)))
 
+; declaration with a value
 (define value_declare
   (lambda (statement state)
-    (bind (Mname statement) (M_integer (Mvalue statement) state) state)))
-
-(define Mname cadr)
-(define Mvalue caddr)
+    (bind (state_key statement) (parse_statement (state_value statement) state) state)))
 
 ;assignment statement
 (define assign
   (lambda (statement state)
-    (if (does_exist? (Mname statement) state)
-      (update (Mname statement) (M_integer (Mvalue statement) state) state)
+    (if (does_exist? (state_key statement) state)
+      (update (state_key statement) (parse_statement (state_value statement) state) state)
       (error 'assign "variable not declared" (statement)))))
     
 
@@ -67,9 +145,9 @@
 (define return
   (lambda (statement state)
     (update
-     'RETURN
-     (M_integer (cadr statement) state)
-     state)))
+      'RETURN
+      (parse_statement (cadr statement) state)
+      state)))
 
 ; conditionals helpers
 (define condition cadr)
@@ -79,27 +157,27 @@
 ;if statement
 (define interpret_if
   (lambda (statement state)
-    (if (null? (cdddr statement))
+    (if (null? (cdddr statement)) ; if there is no else statement
       (if_without_else statement state)
       (if_with_else statement state))))
 
 ; Helpers to separate an if with an else and a if without an else
 (define if_with_else
   (lambda (statement state)
-    (if (M_boolean (condition statement) state)
+    (if (parse_statement (condition statement) state)
       (parse_statement (body statement) state)
       (parse_statement (else_body statement) state))))
 
 (define if_without_else
   (lambda (statement state)
-    (if (M_boolean (condition statement) state)
+    (if (parse_statement (condition statement) state)
       (parse_statement (body statement) state)
       state)))
 
 ;while statement
 (define interpret_while
   (lambda (statement state)
-    (if (M_boolean (condition statement) state)
+    (if (parse_statement (condition statement) state)
       (parse_statement (body statement) state)  ; NOTE: not sure if this is right for when the condition for the while loop is true
       (state))))  ; NOTE: not sure if this is right for exitting the loop
 
@@ -156,38 +234,32 @@
 
 ;---------------values-------------
 
+; Helper functions for eval_math_expr and eval_boolean_expr
 (define operator car)
 (define firstoperand cadr)
 (define secondoperand caddr)
 
-; NOTE: needs to be changed to take in a state for M_integer and M_boolean
-
-;Minteger
-(define M_integer
-  (lambda (expression state)
+; Evaluate the math expression
+(define eval_math_expr
+  (lambda (expr state)
     (cond
-      ((number? expression) expression)
-      ((not (pair? expression)) (if (null? (lookup expression state)) ; Check if the variable has been assigned a value
-                                (error 'M_integer (string-append "Variable " (format "~a" expression) " has not been assigned a value"))
-                                (lookup expression state)))
-      ((eq? '+ (operator expression)) (+ (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
-      ((eq? '- (operator expression)) (if (null? (cddr expression)) ; if its unary sign or subtraction
-                                        (- 0 (M_integer (firstoperand expression) state))
-                                        (- (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state))))
-      ((eq? '* (operator expression)) (* (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
-      ((eq? '/ (operator expression)) (quotient (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
-      ((eq? '% (operator expression)) (remainder (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
-      (else (error 'M_integer (string-append "Invalid operator: " (operator expression)))))))
+      ((eq? '+ (operator expr)) (+ (parse_statement (firstoperand expr) state) (parse_statement (secondoperand expr) state)))
+      ((eq? '- (operator expr)) (if (null? (cddr expr)) ; if its unary sign or subtraction
+                                        (- 0 (parse_statement (firstoperand expr) state))
+                                        (- (parse_statement (firstoperand expr) state) (parse_statement (secondoperand expr) state))))
+      ((eq? '* (operator expr)) (* (parse_statement (firstoperand expr) state) (parse_statement (secondoperand expr) state)))
+      ((eq? '/ (operator expr)) (quotient (parse_statement (firstoperand expr) state) (parse_statement (secondoperand expr) state)))
+      ((eq? '% (operator expr)) (remainder (parse_statement (firstoperand expr) state) (parse_statement (secondoperand expr) state)))
+      (else (error 'eval_math_expr (format "Invalid operator: ~a" expr))))))
 
-
-;Mboolean
-(define M_boolean
-  (lambda (expression state)
+; Evaluate the boolean expression
+(define eval_boolean_expr
+  (lambda (expr state)
     (cond
-      ((eq? '> (operator expression)) (> (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
-      ((eq? '< (operator expression)) (< (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
-      ((eq? '<= (operator expression)) (<= (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
-      ((eq? '>= (operator expression)) (>= (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
-      ((eq? '== (operator expression)) (eq? (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state)))
-      ((eq? '!= (operator expression)) (not (eq? (M_integer (firstoperand expression) state) (M_integer (secondoperand expression) state))))
-      (else (error 'M_boolean (format "Invalid operator: ~a" expression))))))
+      ((eq? '> (operator expr)) (> (parse_statement (firstoperand expr) state) (parse_statement (secondoperand expr) state)))
+      ((eq? '< (operator expr)) (< (parse_statement (firstoperand expr) state) (parse_statement (secondoperand expr) state)))
+      ((eq? '<= (operator expr)) (<= (parse_statement (firstoperand expr) state) (parse_statement (secondoperand expr) state)))
+      ((eq? '>= (operator expr)) (>= (parse_statement (firstoperand expr) state) (parse_statement (secondoperand expr) state)))
+      ((eq? '== (operator expr)) (eq? (parse_statement (firstoperand expr) state) (parse_statement (secondoperand expr) state)))
+      ((eq? '!= (operator expr)) (not (eq? (parse_statement (firstoperand expr) state) (parse_statement (secondoperand expr) state))))
+      (else (error 'eval_boolean_expr (format "Invalid operator: ~a" expr))))))
