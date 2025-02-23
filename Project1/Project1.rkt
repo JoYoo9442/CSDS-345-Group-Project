@@ -28,11 +28,9 @@
   (lambda (statement state)
     (cond
       ((number? statement) statement)
-      ((boolean? statement) (convert_boolean statement))                  ; Convert boolean to our representation
-      ((is_boolean? statement) statement)                                 ; Return the boolean if it is a boolean
-      ((not (pair? statement)) (if (null? (lookup statement state)) ; Check if the variable has been assigned a value
-                                       (error 'parse_statement (string-append "Variable " (format "~a" statement) " has not been assigned a value"))
-                                       (lookup statement state)))
+      ((boolean? statement) statement)                  ; Convert boolean to our representation
+      ((is_boolean? statement) (boolean_to_racket statement))                                 ; Return the boolean if it is a boolean
+      ((not (pair? statement)) (lookup statement state))                 ; Check if the variable has been assigned a value
       ((null? statement) state)
       ((is_reserved_word? statement) (eval_reserved_word statement state))
       ((is_math_expr? statement) (eval_math_expr statement state))
@@ -102,7 +100,13 @@
       (eq? (identifier statement) '||)
       (eq? (identifier statement) '!))))
 
-(define convert_boolean
+(define boolean_to_racket
+  (lambda (statement)
+    (if (eq? statement 'true)
+      #t
+      #f)))
+     
+(define boolean_to_defined
   (lambda (statement)
     (if statement
       'true
@@ -178,8 +182,8 @@
 (define interpret_while
   (lambda (statement state)
     (if (parse_statement (condition statement) state)
-      (parse_statement (body statement) state)  ; NOTE: not sure if this is right for when the condition for the while loop is true
-      (state))))  ; NOTE: not sure if this is right for exitting the loop
+      (interpret_while statement (parse_statement (body statement) state))
+      state)))
 
 
 ;----------------bindings -------------
@@ -207,12 +211,16 @@
         (list (append (car state) (list name)) (append (cadr state) (list value))))))
 
 ;lookup binding
-; return a value assigned to a name in the state
+; return the value assigned to a name in the state
+; Errors if the variable does not exist or has not been assigned a value
 (define lookup
   (lambda (name state)
     (cond
       ((not (does_exist? name state)) (error 'lookup (format "Variable ~a has not been declared" name))) ;error messages not updated
       ((eq? name (caar state)) (caadr state))
+      ((eq? name (caar state)) (if (null? (caadr state))
+                                (error 'lookup (format "Variable ~a has not been assigned a value" name))
+                                (caadr state)))
       (else (lookup name (next_in_state state))))))
 
 ;update binding
@@ -264,5 +272,5 @@
       ((eq? '!= (operator expr)) (eq? (parse_statement (firstoperand expr) state) (parse_statement (secondoperand expr) state)))
       ((eq? '|| (operator expr)) (or (parse_statement (firstoperand expr) state) (parse_statement (secondoperand expr) state)))
       ((eq? '&& (operator expr)) (and (parse_statement (firstoperand expr) state) (parse_statement (secondoperand expr) state)))
-      ((eq? '! (operator expr)) (not (parse_statement (firstoperand expr))))
+      ((eq? '! (operator expr)) (not (parse_statement (firstoperand expr) state)))
       (else (error 'eval_boolean_expr (format "Invalid operator: ~a" expr))))))
