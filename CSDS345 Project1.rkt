@@ -60,9 +60,9 @@
 ;assignment statement
 (define assign
   (lambda (statement state)
-    (if (eq? '() (lookup (Mname statement) state))
-      (error 'declare "variable not declared")
-      (update (Mname statement) (cadr statement) state))))
+    (if (does_exist? (Mname statement) state)
+      (update (Mname statement) (cadr statement) state)
+      (error 'assign "variable not declared" (statement)))))
     
 
 ;return statement
@@ -73,19 +73,24 @@
      (M_integer statement state)
      state)))
 
+; conditionals helpers
+(define condition cadr)
+(define body caddr)
+(define else cadddr)
+
 ;if statement
 (define interpret_if
-  (lambda (condition body else state)
-    (if (M_boolean condition state)
-      (parse_statement body state)
-      (parse_statement else state))))
+  (lambda (statement state)
+    (if (M_boolean (condition statement) state)
+      (parse_statement (body statement) state)
+      (parse_statement (else statement) state))))
         
 
 ;while statement
 (define interpret_while
-  (lambda (condition body state)
-    (if (interpret_if (M_boolean condition state))
-      (parse_statement body state)  ; NOTE: not sure if this is right for when the condition for the while loop is true
+  (lambda (statement state)
+    (if (M_boolean (condition statement) state)
+      (parse_statement (condition statement) state)  ; NOTE: not sure if this is right for when the condition for the while loop is true
       (state))))  ; NOTE: not sure if this is right for exitting the loop
 
 
@@ -108,9 +113,16 @@
 (define lookup
   (lambda (name state)
     (cond
-      ((null? state) (error 'bad-op "Invalid operator")) ;error messages not updated
+      ((null? (car state)) (error 'invalid-var "Invalid variable name")) ;error messages not updated
       ((eq? name (caar state)) (caadr state))
       (else (lookup name (next_in_state state))))))
+
+; return a boolean on whether a variable name exists in the state
+(define does_exist?
+  (lambda (name state)
+    (if (null? (car state))
+        #f
+        #t)))
 
 ;update binding
 ; cps form of update
@@ -163,4 +175,4 @@
       ((eq? '>= (operator expression)) (>= (M_boolean (firstoperand expression) state) (M_boolean (secondoperand expression) state)))
       ((eq? '== (operator expression)) (eq? (M_boolean (firstoperand expression) state) (M_boolean (secondoperand expression) state)))
       ((eq? '!= (operator expression)) ((not eq? (M_boolean (firstoperand expression) state) (M_boolean (secondoperand expression) state))))
-      (else (error 'bad-op "Invalid operator")))))
+      (else (error 'bad-op (format "Invalid operator: ~a" expression))))))
