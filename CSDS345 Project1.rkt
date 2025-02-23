@@ -1,6 +1,10 @@
 #lang racket
 (require "simpleParser.rkt")
 (require "lex.rkt")
+
+; JUST for testing DELETE LATER
+(define state '((RETURN) (())))
+
 ;the main interpret function
 (define interpret
   (lambda (filename)
@@ -27,8 +31,8 @@
       ((eq? (car statement) 'var)    (declare statement state))
       ((eq? (car statement) '=)      (assign statement state))
       ((eq? (car statement) 'return) (return statement state))
-      ((eq? (car statement) 'if)     (if statement state))
-      ((eq? (car statement) 'while)  (while statement state))
+      ((eq? (car statement) 'if)     (interpret_if statement state))
+      ((eq? (car statement) 'while)  (interpret_while statement state))
       (else
        (error "parse_statement: Unknown statement" (statement))))))
 
@@ -37,11 +41,20 @@
 ;declaration statement
 (define declare
   (lambda (statement state)
-    (if (null? (cdr statement))
-      (bind (Mname statement) '() state)
-      (bind (Mname statement) (caddr statement) state))))
+    (if (null? (cddr statement))
+        (empty_declare statement state)
+        (value_declare statement state))))
+
+(define empty_declare
+  (lambda (statement state)
+    (bind (Mname statement) '() state)))
+
+(define value_declare
+  (lambda (statement state)
+    (bind (Mname statement) (Mvalue statement) state)))
+
 (define Mname cadr)
-(define Mint cadr)
+(define Mvalue caddr)
 
 
 ;assignment statement
@@ -58,7 +71,7 @@
     (lookup (Mname statement) state)))
 
 ;if statement
-(define if
+(define interpret_if
   (lambda (condition body else state)
     (if (M_boolean condition state)
       (parse_statement body state)
@@ -66,9 +79,9 @@
         
 
 ;while statement
-(define while
+(define interpret_while
   (lambda (condition body state)
-    (if (M_boolean condition state)
+    (if (interpret_if (M_boolean condition state))
       (parse_statement body state)  ; NOTE: not sure if this is right for when the condition for the while loop is true
       (state))))  ; NOTE: not sure if this is right for exitting the loop
 
