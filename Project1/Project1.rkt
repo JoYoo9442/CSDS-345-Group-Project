@@ -15,7 +15,7 @@
 (define interpret_statement_list
   (lambda (statement_list state)
     (cond
-      ((null? statement_list) state)   ;NOTE: is this the correct termination for empty statement-list? (I think so...)
+      ((null? statement_list) state)
       ((list? (car statement_list)) (interpret_statement_list
                                       (cdr statement_list)
                                       (SV_interpret_statement (car statement_list) state))) 
@@ -37,7 +37,7 @@
       ((V_is_boolean_expr? statement) (V_eval_boolean_expr statement state))
       (else (error 'SV_interpret_statement (format "Unknown statement: ~a" statement))))))
 
-; SV_interpret_statement helper functions
+; ----SV_interpret_statement helper functions-------
 
 ; Function to identify the type of statement
 (define identifier car)
