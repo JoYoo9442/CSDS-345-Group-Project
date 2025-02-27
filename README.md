@@ -6,6 +6,9 @@
 
 #### Code
 All the code for Project1 is stored in Project1.rkt in the Project1 folder
+Naming Scheme: S_* denotes functions that alter state
+               V_* denotes functions that return values
+               SV_* denotes functions that alter state and return values
 
 #### Tester file
 There is an included `tester.rkt` file that is included that contains a way to quickly test a specific defined
