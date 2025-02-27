@@ -7,54 +7,54 @@
 (define interpret
   (lambda (filename)
     (caadr                    ;result will be first value of second list
-     (parse_statement_list    ;begin parsing - returns final state
+     (interpret_statement_list    ;begin parsing - returns final state
       (parser filename)
       (list '(RETURN) '(()))))))
 
 ;highest level: parse statement-list
-(define parse_statement_list
+(define interpret_statement_list
   (lambda (statement_list state)
     (cond
       ((null? statement_list) state)   ;NOTE: is this the correct termination for empty statement-list? (I think so...)
-      ((list? (car statement_list)) (parse_statement_list
+      ((list? (car statement_list)) (interpret_statement_list
                                       (cdr statement_list)
-                                      (parse_statement (car statement_list) state))) 
+                                      (SV_interpret_statement (car statement_list) state))) 
       (else
-       (error "parse_statement_list: Invalid parse - Expected a list, but got" (car statement_list))))))  ;error on invalid parse should never be thrown
+       (error "interpret_statement_list: Invalid parse - Expected a list, but got" (car statement_list))))))  ;error on invalid parse should never be thrown
 
 ;check which type of statement: parse statement
-; new parse_statement function
-(define parse_statement
+; new interpret_statement function
+(define SV_interpret_statement
   (lambda (statement state)
     (cond
       ((number? statement) statement)
-      ((boolean? statement) (boolean_to_atomic statement))                  ; Convert boolean to our representation
-      ((is_boolean? statement) statement)                                    ; Return the boolean if it is a boolean
-      ((not (pair? statement)) (lookup statement state))                     ; Check if the variable has been assigned a value
+      ((boolean? statement) (V_boolean_to_atomic statement))                  ; Convert boolean to our representation
+      ((V_is_boolean? statement) statement)                                    ; Return the boolean if it is a boolean
+      ((not (pair? statement)) (S_lookup statement state))                     ; Check if the variable has been assigned a value
       ((null? statement) state)
-      ((is_reserved_word? statement) (eval_reserved_word statement state))
-      ((is_math_expr? statement) (eval_math_expr statement state))
-      ((is_boolean_expr? statement) (eval_boolean_expr statement state))
-      (else (error 'parse_statement (format "Unknown statement: ~a" statement))))))
+      ((V_is_reserved_word? statement) (S_eval_reserved_word statement state))
+      ((V_is_math_expr? statement) (V_eval_math_expr statement state))
+      ((V_is_boolean_expr? statement) (V_eval_boolean_expr statement state))
+      (else (error 'SV_interpret_statement (format "Unknown statement: ~a" statement))))))
 
-; parse_statement helper functions
+; SV_interpret_statement helper functions
 
 ; Function to identify the type of statement
 (define identifier car)
 
 ; Function to parse reserved words
-(define eval_reserved_word
+(define S_eval_reserved_word
   (lambda (statement state)
     (cond
-      ((eq? (identifier statement) 'var) (declare statement state))
-      ((eq? (identifier statement) '=) (assign statement state))
-      ((eq? (identifier statement) 'return) (return statement state))
-      ((eq? (identifier statement) 'if) (interpret_if statement state))
-      ((eq? (identifier statement) 'while) (interpret_while statement state))
-      (else (error 'eval_reserved_word (format "How in the world did this error happen??? Statement: ~a" statement))))))
+      ((eq? (identifier statement) 'var) (S_declare statement state))
+      ((eq? (identifier statement) '=) (S_assign statement state))
+      ((eq? (identifier statement) 'return) (S_return statement state))
+      ((eq? (identifier statement) 'if) (S_interpret_if statement state))
+      ((eq? (identifier statement) 'while) (S_interpret_while statement state))
+      (else (error 'S_eval_reserved_word (format "How in the world did this error happen??? Statement: ~a" statement))))))
 
 ; Function to check if the statement is a reserved word
-(define is_reserved_word?
+(define V_is_reserved_word?
   (lambda (statement)
     (or
       (eq? (identifier statement) 'var)
@@ -64,7 +64,7 @@
       (eq? (identifier statement) 'while))))
 
 ; function to check if the statement is a math expression
-(define is_math_expr?
+(define V_is_math_expr?
   (lambda (statement)
     (or
       (eq? (identifier statement) '+)
@@ -74,8 +74,8 @@
       (eq? (identifier statement) '%))))
 
 ; Function to check if the statement is a comparison
-(define is_comparison?
-(lambda (statement)
+(define V_is_comparison?
+  (lambda (statement)
     (or
       (eq? (identifier statement) '>)
       (eq? (identifier statement) '<)
@@ -85,30 +85,30 @@
       (eq? (identifier statement) '!=))))
 
 ; Function to check if the statement is a boolean
-(define is_boolean?
+(define V_is_boolean?
   (lambda (statement)
     (or
       (eq? statement 'true)
       (eq? statement 'false))))
 
 ; Function to check if the statement is a boolean expression
-(define is_boolean_expr?
+(define V_is_boolean_expr?
   (lambda (statement)
     (or
-      (is_comparison? statement)
+      (V_is_comparison? statement)
       (eq? (identifier statement) '&&)
       (eq? (identifier statement) '||)
       (eq? (identifier statement) '!))))
 
 ; Function to check if the statement is a boolean
-(define is_true?
+(define V_is_true?
   (lambda (statement)
     (if (eq? statement 'true)
       #t
       #f)))
      
 ; Function to convert boolean to defined
-(define boolean_to_atomic
+(define V_boolean_to_atomic
   (lambda (statement)
     (if statement
       'true
@@ -117,76 +117,76 @@
 ;--------------statements-------------------------
 
 ;declaration statement
-(define declare
+(define S_declare
   (lambda (statement state)
     (if (null? (cddr statement)) ; if there is no value assigned to the variable
-        (empty_declare statement state)
-        (value_declare statement state))))
+        (S_empty_declare statement state)
+        (S_value_declare statement state))))
 
-; Helper functions for declare
+; Helper functions for S_declare
 
 ; key and value of the statement
-(define state_key cadr)
-(define state_value caddr)
+(define V_state_key cadr)
+(define V_state_value caddr)
 
 ; empty declaration
-(define empty_declare
+(define S_empty_declare
   (lambda (statement state)
-    (bind (state_key statement) '() state)))
+    (S_bind (V_state_key statement) '() state)))
 
 ; declaration with a value
-(define value_declare
+(define S_value_declare
   (lambda (statement state)
-    (bind (state_key statement) (parse_statement (state_value statement) state) state)))
+    (S_bind (V_state_key statement) (SV_interpret_statement (V_state_value statement) state) state)))
 
 ;assignment statement
-(define assign
+(define S_assign
   (lambda (statement state)
-    (if (does_exist? (state_key statement) state)
-      (update (state_key statement) (parse_statement (state_value statement) state) state)
-      (error 'assign "variable not declared" (statement)))))
+    (if (V_does_exist? (V_state_key statement) state)
+      (S_update (V_state_key statement) (SV_interpret_statement (V_state_value statement) state) state)
+      (error 'S_assign "variable not declared" (statement)))))
     
 
 ;return statement
-(define return
+(define S_return
   (lambda (statement state)
-    (update
+    (S_update
       'RETURN
-      (parse_statement (cadr statement) state)
+      (SV_interpret_statement (cadr statement) state)
       state)))
 
 ; conditionals helpers
-(define condition cadr)
-(define body caddr)
-(define else_body cadddr)
+(define V_condition cadr)
+(define V_body caddr)
+(define V_else_body cadddr)
 
 ;if statement
-(define interpret_if
+(define S_interpret_if
   (lambda (statement state)
     (if (null? (cdddr statement)) ; if there is no else statement
-      (if_without_else statement state)
-      (if_with_else statement state))))
+      (S_if_without_else statement state)
+      (S_if_with_else statement state))))
 
 ; Helpers to separate an if with an else and a if without an else
 ; if with else
-(define if_with_else
+(define S_if_with_else
   (lambda (statement state)
-    (if (is_true? (parse_statement (condition statement) state))   ; CHANGED
-      (parse_statement (body statement) state)
-      (parse_statement (else_body statement) state))))
+    (if (V_is_true? (SV_interpret_statement (V_condition statement) state))
+      (SV_interpret_statement (V_body statement) state)
+      (SV_interpret_statement (V_else_body statement) state))))
 
 ; if without else
-(define if_without_else
+(define S_if_without_else
   (lambda (statement state)
-    (if (is_true? (parse_statement (condition statement) state)) ;CHANGED
-      (parse_statement (body statement) state)
+    (if (V_is_true? (SV_interpret_statement (V_condition statement) state))
+      (SV_interpret_statement (V_body statement) state)
       state)))
 
 ;while statement
-(define interpret_while
+(define S_interpret_while
   (lambda (statement state)
-    (if (is_true? (parse_statement (condition statement) state))
-      (interpret_while statement (parse_statement (body statement) state))
+    (if (V_is_true? (SV_interpret_statement (V_condition statement) state))
+      (S_interpret_while statement (SV_interpret_statement (V_body statement) state))
       state)))
 
 
@@ -194,91 +194,111 @@
 
 
 ; function to just roll through the state: get the cdr of both the lists in state
-(define next_in_state
+(define S_next_in_state
   (lambda (state)
     (list (cdar state) (cdadr state))))
 
 ; return a boolean on whether a variable name exists in the state
-(define does_exist?
+(define V_does_exist?
   (lambda (name state)
     (cond
       ((null? (car state)) #f)
       ((eq? name (caar state)) #t)
-      (else (does_exist? name (next_in_state state))))))
+      (else (V_does_exist? name (S_next_in_state state))))))
 
 ;create binding
 ; bind a name to a value and return the updated state
-(define bind
+(define S_bind
   (lambda (name value state)
-    (if (does_exist? name state)
+    (if (V_does_exist? name state)
         (error 'bind (format "Variable ~a has already been declared" name))
         (list (append (car state) (list name)) (append (cadr state) (list value))))))
 
 ;lookup binding
 ; return the value assigned to a name in the state
 ; Errors if the variable does not exist or has not been assigned a value
-(define lookup
+(define S_lookup
   (lambda (name state)
     (cond
-      ((not (does_exist? name state)) (error 'lookup (format "Variable ~a has not been declared" name))) ;error messages not updated
+      ((not (V_does_exist? name state)) (error 'S_lookup (format "Variable ~a has not been declared" name)))
       ((eq? name (caar state)) (caadr state))
       ((eq? name (caar state)) (if (null? (caadr state))
-                                (error 'lookup (format "Variable ~a has not been assigned a value" name))
+                                (error 'S_lookup (format "Variable ~a has not been assigned a value" name))
                                 (caadr state)))
-      (else (lookup name (next_in_state state))))))
+      (else (S_lookup name (S_next_in_state state))))))
 
 ;update binding
 ; cps form of update
-(define update-cps
+(define S_update_cps
   (lambda (name value state return)
-    (if (not (does_exist? name state))
-        (error 'update-cps (format "Variable ~a has not been declared" name))
+    (if (not (V_does_exist? name state))
+        (error 'S_update_cps (format "Variable ~a has not been declared" name))
         (cond
           ((null? (car state)) (return '() '()))
           ((eq? name (caar state)) (return (car state) (cons value (cdadr state))))
-          (else (update-cps name value (next_in_state state) (lambda (v1 v2) (return (cons (caar state) v1) (cons (caadr state) v2)))))))))
+          (else (S_update_cps name value (S_next_in_state state) (lambda (v1 v2) (return (cons (caar state) v1) (cons (caadr state) v2)))))))))
 
-; make it so you just run update instead of update-cps
-(define update
+; make it so you just run update instead of S_update_cps
+(define S_update
   (lambda (name value state)
-    (update-cps name value state (lambda (v1 v2) (list v1 v2)))))
+    (S_update_cps name value state (lambda (v1 v2) (list v1 v2)))))
 
 
 ;---------------values-------------
 
 ; Helper functions for eval_math_expr and eval_boolean_expr
-(define operator car)
-(define firstoperand cadr)
-(define secondoperand caddr)
+(define V_operator car)
+(define V_first_operand cadr)
+(define V_second_operand caddr)
 
 ; Evaluate the math expression
-(define eval_math_expr
+(define V_eval_math_expr
   (lambda (expr state)
     (cond
-      ((eq? '+ (operator expr)) (+ (parse_statement (firstoperand expr) state) (parse_statement (secondoperand expr) state)))
-      ((eq? '- (operator expr)) (if (null? (cddr expr)) ; if its unary sign or subtraction
-                                        (- 0 (parse_statement (firstoperand expr) state))
-                                        (- (parse_statement (firstoperand expr) state) (parse_statement (secondoperand expr) state))))
-      ((eq? '* (operator expr)) (* (parse_statement (firstoperand expr) state) (parse_statement (secondoperand expr) state)))
-      ((eq? '/ (operator expr)) (quotient (parse_statement (firstoperand expr) state) (parse_statement (secondoperand expr) state)))
-      ((eq? '% (operator expr)) (remainder (parse_statement (firstoperand expr) state) (parse_statement (secondoperand expr) state)))
-      (else (error 'eval_math_expr (format "Invalid operator: ~a" expr))))))
+      ((eq? '+ (V_operator expr)) (+
+                                    (SV_interpret_statement (V_first_operand expr) state)
+                                    (SV_interpret_statement (V_second_operand expr) state)))
+      ((eq? '- (V_operator expr)) (if (null? (cddr expr)) ; if its unary sign or subtraction
+                                        (- 0 (SV_interpret_statement (V_first_operand expr) state))
+                                        (- (SV_interpret_statement (V_first_operand expr) state) (SV_interpret_statement (V_second_operand expr) state))))
+      ((eq? '* (V_operator expr)) (*
+                                    (SV_interpret_statement (V_first_operand expr) state)
+                                    (SV_interpret_statement (V_second_operand expr) state)))
+      ((eq? '/ (V_operator expr)) (quotient
+                                    (SV_interpret_statement (V_first_operand expr) state)
+                                    (SV_interpret_statement (V_second_operand expr) state)))
+      ((eq? '% (V_operator expr)) (remainder
+                                    (SV_interpret_statement (V_first_operand expr) state)
+                                    (SV_interpret_statement (V_second_operand expr) state)))
+      (else (error 'V_eval_math_expr (format "Invalid operator: ~a" expr))))))
 
 ; Evaluate the boolean expression
-(define eval_boolean_expr
+(define V_eval_boolean_expr
   (lambda (expr state)
     (cond
-      ((eq? '> (operator expr)) (boolean_to_atomic (> (parse_statement (firstoperand expr) state) (parse_statement (secondoperand expr) state))))
-      ((eq? '< (operator expr)) (boolean_to_atomic (< (parse_statement (firstoperand expr) state) (parse_statement (secondoperand expr) state))))
-      ((eq? '<= (operator expr)) (boolean_to_atomic (<= (parse_statement (firstoperand expr) state) (parse_statement (secondoperand expr) state))))
-      ((eq? '>= (operator expr)) (boolean_to_atomic (>= (parse_statement (firstoperand expr) state) (parse_statement (secondoperand expr) state))))
-      ((eq? '== (operator expr)) (boolean_to_atomic (eq? (parse_statement (firstoperand expr) state) (parse_statement (secondoperand expr) state))))
-      ((eq? '!= (operator expr)) (boolean_to_atomic (not (eq? (parse_statement (firstoperand expr) state) (parse_statement (secondoperand expr) state)))))
-      ((eq? '|| (operator expr)) (boolean_to_atomic (or
-                                                       (is_true? (parse_statement (firstoperand expr) state))
-                                                       (is_true? (parse_statement (secondoperand expr) state)))))
-      ((eq? '&& (operator expr)) (boolean_to_atomic (and
-                                                       (is_true? (parse_statement (firstoperand expr) state))
-                                                       (is_true? (parse_statement (secondoperand expr) state)))))
-      ((eq? '! (operator expr)) (boolean_to_atomic (not (is_true? (parse_statement (firstoperand expr) state)))))
-      (else (error 'eval_boolean_expr (format "Invalid operator: ~a" expr))))))
+      ((eq? '> (V_operator expr)) (V_boolean_to_atomic (>
+                                                         (SV_interpret_statement (V_first_operand expr) state)
+                                                         (SV_interpret_statement (V_second_operand expr) state))))
+      ((eq? '< (V_operator expr)) (V_boolean_to_atomic (<
+                                                         (SV_interpret_statement (V_first_operand expr) state)
+                                                         (SV_interpret_statement (V_second_operand expr) state))))
+      ((eq? '<= (V_operator expr)) (V_boolean_to_atomic (<=
+                                                          (SV_interpret_statement (V_first_operand expr) state)
+                                                          (SV_interpret_statement (V_second_operand expr) state))))
+      ((eq? '>= (V_operator expr)) (V_boolean_to_atomic (>=
+                                                          (SV_interpret_statement (V_first_operand expr) state)
+                                                          (SV_interpret_statement (V_second_operand expr) state))))
+      ((eq? '== (V_operator expr)) (V_boolean_to_atomic (eq?
+                                                          (SV_interpret_statement (V_first_operand expr) state)
+                                                          (SV_interpret_statement (V_second_operand expr) state))))
+      ((eq? '!= (V_operator expr)) (V_boolean_to_atomic (not (eq?
+                                                               (SV_interpret_statement (V_first_operand expr) state)
+                                                               (SV_interpret_statement (V_second_operand expr) state)))))
+      ((eq? '|| (V_operator expr)) (V_boolean_to_atomic (or
+                                                       (V_is_true? (SV_interpret_statement (V_first_operand expr) state))
+                                                       (V_is_true? (SV_interpret_statement (V_second_operand expr) state)))))
+      ((eq? '&& (V_operator expr)) (V_boolean_to_atomic (and
+                                                       (V_is_true? (SV_interpret_statement (V_first_operand expr) state))
+                                                       (V_is_true? (SV_interpret_statement (V_second_operand expr) state)))))
+      ((eq? '! (V_operator expr)) (V_boolean_to_atomic (not (V_is_true? (SV_interpret_statement (V_first_operand expr) state)))))
+      (else (error 'V_eval_boolean_expr (format "Invalid operator: ~a" expr))))))
