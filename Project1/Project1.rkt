@@ -29,8 +29,8 @@
     (cond
       ((number? statement) statement)
       ((boolean? statement) (boolean_to_defined statement))                  ; Convert boolean to our representation
-      ((is_boolean? statement) statement)                                 ; Return the boolean if it is a boolean
-      ((not (pair? statement)) (lookup statement state))                 ; Check if the variable has been assigned a value
+      ((is_boolean? statement) statement)                                    ; Return the boolean if it is a boolean
+      ((not (pair? statement)) (lookup statement state))                     ; Check if the variable has been assigned a value
       ((null? statement) state)
       ((is_reserved_word? statement) (eval_reserved_word statement state))
       ((is_math_expr? statement) (eval_math_expr statement state))
@@ -100,7 +100,7 @@
       (eq? (identifier statement) '||)
       (eq? (identifier statement) '!))))
 
-(define boolean_to_racket
+(define is_true?
   (lambda (statement)
     (if (eq? statement 'true)
       #t
@@ -168,20 +168,20 @@
 ; Helpers to separate an if with an else and a if without an else
 (define if_with_else
   (lambda (statement state)
-    (if (eq? 'true (parse_statement (condition statement) state))   ; CHANGED
+    (if (is_true? (parse_statement (condition statement) state))   ; CHANGED
       (parse_statement (body statement) state)
       (parse_statement (else_body statement) state))))
 
 (define if_without_else
   (lambda (statement state)
-    (if (eq? 'true (parse_statement (condition statement) state)) ;CHANGED
+    (if (is_true? (parse_statement (condition statement) state)) ;CHANGED
       (parse_statement (body statement) state)
       state)))
 
 ;while statement
 (define interpret_while
   (lambda (statement state)
-    (if (eq? 'true (parse_statement (condition statement) state))
+    (if (is_true? (parse_statement (condition statement) state))
       (interpret_while statement (parse_statement (body statement) state))
       state)))
 
@@ -270,7 +270,11 @@
       ((eq? '>= (operator expr)) (boolean_to_defined (>= (parse_statement (firstoperand expr) state) (parse_statement (secondoperand expr) state))))
       ((eq? '== (operator expr)) (boolean_to_defined (eq? (parse_statement (firstoperand expr) state) (parse_statement (secondoperand expr) state))))
       ((eq? '!= (operator expr)) (boolean_to_defined (not (eq? (parse_statement (firstoperand expr) state) (parse_statement (secondoperand expr) state)))))
-      ((eq? '|| (operator expr)) (boolean_to_defined (or (parse_statement (firstoperand expr) state) (parse_statement (secondoperand expr) state))))
-      ((eq? '&& (operator expr)) (boolean_to_defined (and (parse_statement (firstoperand expr) state) (parse_statement (secondoperand expr) state))))
-      ((eq? '! (operator expr)) (boolean_to_defined (not (parse_statement (firstoperand expr) state))))
+      ((eq? '|| (operator expr)) (boolean_to_defined (or
+                                                       (is_true? (parse_statement (firstoperand expr) state))
+                                                       (is_true? (parse_statement (secondoperand expr) state)))))
+      ((eq? '&& (operator expr)) (boolean_to_defined (and
+                                                       (is_true? (parse_statement (firstoperand expr) state))
+                                                       (is_true? (parse_statement (secondoperand expr) state)))))
+      ((eq? '! (operator expr)) (boolean_to_defined (not (is_true? (parse_statement (firstoperand expr) state)))))
       (else (error 'eval_boolean_expr (format "Invalid operator: ~a" expr))))))
