@@ -28,7 +28,7 @@
   (lambda (statement state)
     (cond
       ((number? statement) statement)
-      ((boolean? statement) (boolean_to_defined statement))                  ; Convert boolean to our representation
+      ((boolean? statement) (boolean_to_atomic statement))                  ; Convert boolean to our representation
       ((is_boolean? statement) statement)                                    ; Return the boolean if it is a boolean
       ((not (pair? statement)) (lookup statement state))                     ; Check if the variable has been assigned a value
       ((null? statement) state)
@@ -100,13 +100,15 @@
       (eq? (identifier statement) '||)
       (eq? (identifier statement) '!))))
 
+; Function to check if the statement is a boolean
 (define is_true?
   (lambda (statement)
     (if (eq? statement 'true)
       #t
       #f)))
      
-(define boolean_to_defined
+; Function to convert boolean to defined
+(define boolean_to_atomic
   (lambda (statement)
     (if statement
       'true
@@ -166,12 +168,14 @@
       (if_with_else statement state))))
 
 ; Helpers to separate an if with an else and a if without an else
+; if with else
 (define if_with_else
   (lambda (statement state)
     (if (is_true? (parse_statement (condition statement) state))   ; CHANGED
       (parse_statement (body statement) state)
       (parse_statement (else_body statement) state))))
 
+; if without else
 (define if_without_else
   (lambda (statement state)
     (if (is_true? (parse_statement (condition statement) state)) ;CHANGED
@@ -264,17 +268,17 @@
 (define eval_boolean_expr
   (lambda (expr state)
     (cond
-      ((eq? '> (operator expr)) (boolean_to_defined (> (parse_statement (firstoperand expr) state) (parse_statement (secondoperand expr) state))))
-      ((eq? '< (operator expr)) (boolean_to_defined (< (parse_statement (firstoperand expr) state) (parse_statement (secondoperand expr) state))))
-      ((eq? '<= (operator expr)) (boolean_to_defined (<= (parse_statement (firstoperand expr) state) (parse_statement (secondoperand expr) state))))
-      ((eq? '>= (operator expr)) (boolean_to_defined (>= (parse_statement (firstoperand expr) state) (parse_statement (secondoperand expr) state))))
-      ((eq? '== (operator expr)) (boolean_to_defined (eq? (parse_statement (firstoperand expr) state) (parse_statement (secondoperand expr) state))))
-      ((eq? '!= (operator expr)) (boolean_to_defined (not (eq? (parse_statement (firstoperand expr) state) (parse_statement (secondoperand expr) state)))))
-      ((eq? '|| (operator expr)) (boolean_to_defined (or
+      ((eq? '> (operator expr)) (boolean_to_atomic (> (parse_statement (firstoperand expr) state) (parse_statement (secondoperand expr) state))))
+      ((eq? '< (operator expr)) (boolean_to_atomic (< (parse_statement (firstoperand expr) state) (parse_statement (secondoperand expr) state))))
+      ((eq? '<= (operator expr)) (boolean_to_atomic (<= (parse_statement (firstoperand expr) state) (parse_statement (secondoperand expr) state))))
+      ((eq? '>= (operator expr)) (boolean_to_atomic (>= (parse_statement (firstoperand expr) state) (parse_statement (secondoperand expr) state))))
+      ((eq? '== (operator expr)) (boolean_to_atomic (eq? (parse_statement (firstoperand expr) state) (parse_statement (secondoperand expr) state))))
+      ((eq? '!= (operator expr)) (boolean_to_atomic (not (eq? (parse_statement (firstoperand expr) state) (parse_statement (secondoperand expr) state)))))
+      ((eq? '|| (operator expr)) (boolean_to_atomic (or
                                                        (is_true? (parse_statement (firstoperand expr) state))
                                                        (is_true? (parse_statement (secondoperand expr) state)))))
-      ((eq? '&& (operator expr)) (boolean_to_defined (and
+      ((eq? '&& (operator expr)) (boolean_to_atomic (and
                                                        (is_true? (parse_statement (firstoperand expr) state))
                                                        (is_true? (parse_statement (secondoperand expr) state)))))
-      ((eq? '! (operator expr)) (boolean_to_defined (not (is_true? (parse_statement (firstoperand expr) state)))))
+      ((eq? '! (operator expr)) (boolean_to_atomic (not (is_true? (parse_statement (firstoperand expr) state)))))
       (else (error 'eval_boolean_expr (format "Invalid operator: ~a" expr))))))
