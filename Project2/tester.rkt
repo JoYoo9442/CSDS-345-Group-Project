@@ -1,44 +1,28 @@
 #lang racket
-(require "Project1.rkt")
+(require "Project2.rkt")
 (require "simpleParser.rkt")
 
-(define ubd_error "ERROR (Usage before declaring)")
-(define uba_error "ERROR (Usage before assignment)")
-(define ubr_error "ERROR (redeclaration)")
-(define result_list (list 150 -4 10 16 220 5 6 10 5 -39 ubd_error ubd_error uba_error ubr_error 'true 100 'false 'true 128 12 30 11 1106 12 16 72 21 164))
+(define result_list
+  (list 20 164 32 2 'ERROR 25 21 6 -1 789 'ERROR 'ERROR 'ERROR 12 125 110 2000400 101 'ERROR 21))
 
-(define dotest #t)
-(define testnumstring "")
-(define testnum 0)
-(define testfile "")
+(define create-file-str
+  (lambda (testnum)
+    (if (< testnum 10)
+          (string-append "tests/test0" (number->string testnum) ".txt")
+          (string-append "tests/test" (number->string testnum) ".txt"))))
 
-(define testproject
-  (lambda ()
-    (displayln "Enter test number (1-28) OR")
-    (displayln "Enter -1 for custom test (test.txt)")
-    (set! testnum (read))
-    (cond
-      ((< testnum 0) (set! testnumstring ""))
-      ((< testnum 10) (set! testnumstring (string-append "0" (number->string testnum))))
-      (else (set! testnumstring (number->string testnum))))
-
-    (set! testfile (string-append "tests/test" testnumstring ".txt"))
-
-    (displayln "Parser Result: ")
-    (displayln (parser testfile))
-
-    (if (> testnum 0)
+(define test-project
+  (lambda (testnum)
+    (if (zero? testnum)
       (begin
+        (display "Enter test number: ")
+        (test-project (read)))
+      (let ([filename (create-file-str testnum)])
+        (displayln "Parser Result: ")
+        (displayln (parser filename))
         (displayln "Expected Result: ")
-        (displayln (list-ref result_list (- testnum 1))))
-        (displayln "No expected result for custom test"))
+        (displayln (list-ref result_list (- testnum 1)))
+        (displayln "Interpreter Result: ")
+        (displayln (interpret filename))))))
 
-    (displayln "Interpreter Result: ")
-    (displayln(interpret testfile))
-
-    (displayln "Run another test? (y/n)")
-    (if (not (eq? (read) 'y))
-      (set! dotest #f)
-      (testproject))))
-
-(testproject)
+(test-project 0)
